@@ -33,6 +33,10 @@ import com.seyren.core.domain.Subscription;
 import com.seyren.core.domain.SubscriptionType;
 import com.seyren.core.exception.NotificationFailedException;
 import com.seyren.core.util.config.SeyrenConfig;
+import com.seyren.core.util.datetime.GraphiteTimeFormatter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 @Named
 public class HipChatNotificationService implements NotificationService {
@@ -61,6 +65,9 @@ public class HipChatNotificationService implements NotificationService {
         try {
             if (check.getState() == AlertType.ERROR) {
                  String message = getHipChatMessage(check);                  
+                 message = message + "<br /><img src=" + seyrenConfig.getGraphiteUrl() + "/render/?target=" + check.getTarget() + getTimeFromUntilString() +
+                         "&target=alias(dashed(color(constantLine(" + check.getWarn().toString() + "),%22yellow%22)),%22warn%20level%22)&target=alias(dashed(color(constantLine(" + check.getError().toString() 
+                        + "),%22red%22)),%22error%20level%22)&width=500&height=225></img>"; 
                 sendMessage(message, MessageColor.RED, roomIds, from, token, true);
             } else if (check.getState() == AlertType.WARN) {
                 String message = getHipChatMessage(check);
@@ -115,5 +122,20 @@ public class HipChatNotificationService implements NotificationService {
     
     private enum MessageColor {
         YELLOW, RED, GREEN, PURPLE, RANDOM;
+    }
+    
+    public String getTimeFromUntilString()
+    {
+        Date now = new Date();
+
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat format = new SimpleDateFormat("HH:mm_yyyyMMdd");
+        cal.setTime(now);
+        cal.add(Calendar.HOUR, -1);
+        String from = format.format(cal.getTime());
+        cal.add(Calendar.HOUR, 1);
+        String until = format.format(cal.getTime());
+
+        return "&from=" + until.toString() + "&until=" + from.toString();   
     }
 }
